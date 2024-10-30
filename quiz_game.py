@@ -1,20 +1,6 @@
-import tkinter as tk
-from PIL import Image, ImageTk
+import streamlit as st
+from PIL import Image
 import os
-
-# Creăm fereastra principală
-root = tk.Tk()
-root.title("Joc Interactiv")
-root.attributes('-fullscreen', True)
-
-fullscreen = True
-
-def toggle_fullscreen():
-    global fullscreen
-    fullscreen = not fullscreen
-    root.attributes('-fullscreen', fullscreen)
-
-root.configure(bg="#D3E8F5")
 
 # Lista cu întrebări, variante și imagini pentru răspunsuri
 intrebari = [
@@ -111,126 +97,33 @@ intrebari = [
 
 index_intrebare = 0
 
-# Cadrul pentru întrebare și imagine
-question_frame = tk.Frame(root, bg="#D3E8F5", width=800, height=800)  # Mărire dimensiune cadru
-question_frame.pack_propagate(False)
-question_frame.pack(side=tk.LEFT, padx=40, pady=20, fill=tk.BOTH, expand=True)
+# Funcție pentru a verifica răspunsul
+def verifica_raspuns(raspuns_corect, raspuns_dat):
+    return raspuns_corect == raspuns_dat
 
-intrebare_label = tk.Label(question_frame, text="", font=("Arial", 36, "bold"), bg="#D3E8F5", wraplength=700, justify="left")  # Font mai mare
-intrebare_label.pack(pady=20)
+# Pagina principală
+st.title("🎮 Joc Interactiv")
 
-img_label = tk.Label(question_frame, bg="#D3E8F5")
-img_label.pack()
+# Indexul întrebării curente
+if 'index_intrebare' not in st.session_state:
+    st.session_state.index_intrebare = 0
 
-# Cadrul pentru răspunsuri
-response_frame = tk.Frame(root, bg="#D3E8F5", width=800, height=800)  # Mărire dimensiune cadru
-response_frame.pack_propagate(False)
-response_frame.pack(side=tk.RIGHT, padx=40, pady=20, fill=tk.BOTH, expand=True)
+# Afișăm întrebarea curentă
+def afiseaza_intrebare(index):
+    intrebarea = intrebari[index]
+    st.image(intrebarea["imagine"], use_column_width=True)
+    st.write(intrebarea["intrebare"])
 
-# Mesajul pentru feedback (ajustare font și wraplength)
-mesaj_label = tk.Label(root, text="", font=("Arial", 24), bg="#D3E8F5", wraplength=900, justify="center")  # Font mai mare
-mesaj_label.pack(pady=40, padx=20)
+    for raspuns in intrebarea["variante"]:
+        if st.button(raspuns["text"]):
+            feedback = "Foarte bine!" if raspuns["corect"] else "Mai încearcă!"
+            st.success(feedback) if raspuns["corect"] else st.error(feedback)
+            st.session_state.index_intrebare += 1  # Trecem la următoarea întrebare
 
-# Label pentru imaginea de feedback
-img_feedback_label = tk.Label(root, bg="#D3E8F5")
-img_feedback_label.pack(pady=10)
-
-buton_hai = tk.Button(root, text="➔", font=("Arial", 28), command=lambda: urmatoarea_intrebare())  # Font mai mare
-buton_hai.pack_forget()
-
-def afiseaza_intrebare():
-    global index_intrebare
-    buton_hai.pack_forget()
-    mesaj_label.config(text="")
-    img_feedback_label.config(image="")  # Resetăm imaginea de feedback
-
-    # Reafișează întrebare și imagine la următoarea întrebare
-    intrebare_label.pack(pady=20)
-    img_label.pack()
-
-    if index_intrebare < len(intrebari):
-        img_path = intrebari[index_intrebare]["imagine"]
-        if os.path.exists(img_path):
-            img = Image.open(img_path)
-            img = img.resize((600, 600))  # Ajustează dimensiunea imaginii întrebării
-            img_tk = ImageTk.PhotoImage(img)
-            img_label.config(image=img_tk)
-            img_label.image = img_tk
-        else:
-            img_label.config(image="")
-
-        intrebare_label.config(text=intrebari[index_intrebare]["intrebare"])
-
-        for widget in response_frame.winfo_children():
-            widget.destroy()
-
-        for raspuns in intrebari[index_intrebare]["variante"]:
-            raspuns_frame = tk.Frame(response_frame, bg="#D3E8F5")
-            raspuns_frame.pack(anchor="center", pady=20)
-
-            rasp_img_path = raspuns["imagine"]
-            if os.path.exists(rasp_img_path):
-                img_raspuns = Image.open(rasp_img_path)
-                img_raspuns = img_raspuns.resize((240, 240))
-                img_raspuns_tk = ImageTk.PhotoImage(img_raspuns)
-                img_label_raspuns = tk.Label(raspuns_frame, image=img_raspuns_tk, bg="#D3E8F5")
-                img_label_raspuns.image = img_raspuns_tk
-                img_label_raspuns.pack(side=tk.LEFT, padx=20)
-
-            buton = tk.Button(raspuns_frame, text=raspuns["text"], font=("Arial", 24), command=lambda c=raspuns: verifica_raspuns(c), width=30, anchor="w")
-            buton.pack(side=tk.LEFT, padx=20)
-
-def verifica_raspuns(raspuns):
-    global index_intrebare
-    for widget in response_frame.winfo_children():
-        widget.destroy()
-
-    # Ascunde întrebare și imagine după alegerea răspunsului
-    intrebare_label.pack_forget()
-    img_label.pack_forget()
-
-    # Afișează mesajul complet și ajustează lățimea și fontul mesajului
-    if raspuns["corect"]:
-        mesaj_label.config(text="Foarte bine!", fg="green", font=("Arial", 16), wraplength=300, width=40)
-        
-        feedback_image_path = "feedback_corect.png"
-        if os.path.exists(feedback_image_path):
-            feedback_img = Image.open(feedback_image_path)
-            feedback_img = feedback_img.resize((300, 300))
-            feedback_img_tk = ImageTk.PhotoImage(feedback_img)
-            img_feedback_label.config(image=feedback_img_tk)
-            img_feedback_label.image = feedback_img_tk
-        else:
-            img_feedback_label.config(image="")
-
-        buton_hai.pack(pady=20)  # Afișează butonul "Hai mai departe" pentru a continua
-    else:
-        mesaj_label.config(text="Mai incearcă!", fg="red", font=("Arial", 16), wraplength=300, width=40)
-        
-        wrong_feedback_image_path = "feedback_gresit.png"
-        if os.path.exists(wrong_feedback_image_path):
-            wrong_feedback_img = Image.open(wrong_feedback_image_path)
-            wrong_feedback_img = wrong_feedback_img.resize((300, 300))
-            wrong_feedback_img_tk = ImageTk.PhotoImage(wrong_feedback_img)
-            img_feedback_label.config(image=wrong_feedback_img_tk)
-            img_feedback_label.image = wrong_feedback_img_tk
-        else:
-            img_feedback_label.config(image="")
-
-        buton_hai.pack_forget()
-        root.after(3000, afiseaza_intrebare)
-
-
-
-
-def urmatoarea_intrebare():
-    global index_intrebare
-    index_intrebare += 1
-    afiseaza_intrebare()
-
-afiseaza_intrebare()
-
-buton_fullscreen = tk.Button(root, text="Ieși din Fullscreen", font=("Arial", 18), command=toggle_fullscreen)  # Font mai mare
-buton_fullscreen.place(x=root.winfo_screenwidth() - 220, y=20)
-
-root.mainloop()
+# Verificăm dacă sunt întrebări disponibile
+if st.session_state.index_intrebare < len(intrebari):
+    afiseaza_intrebare(st.session_state.index_intrebare)
+else:
+    st.write("Felicitări! Ai terminat toate întrebările.")
+    if st.button("Reîncepe jocul"):
+        st.session_state.index_intrebare = 0  # Resetăm jocul
